@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Carabus of the Day</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5dc; /* Helles Beige */
+            color: #8B4513; /* SaddleBrown */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            overflow-y: scroll;
+        }
+        .container {
+            text-align: center;
+            background-color: #d2b48c; /* Tan */
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            width: 90%;
+            max-width: 800px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        h1 {
+            font-size: 3em;
+            margin-bottom: 0.5em;
+        }
+        .carabus-details {
+            font-size: 1.2em;
+            margin-top: 1em;
+            background-color: #e2c9a3; /* Light Tan */
+            padding: 15px;
+            border-radius: 8px;
+            text-align: left;
+        }
+        .scientific-name {
+            font-style: italic;
+            color: #5c3a3a; /* Darker Brown */
+        }
+        #carabusImage {
+            margin-top: 20px;
+            max-width: 100%;
+            max-height: 300px;
+            height: auto;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Carabus of the Day</h1>
+    <p class="scientific-name" id="scientificName">Scientific Name</p>
+    <div class="carabus-details" id="carabusDetails">Loading Wikipedia article...</div>
+    <img id="carabusImage" src="" alt="Carabus Image">
+</div>
+
+<script>
+    // Array of Carabidae species with scientific names
+    const carabidae = [
+        {name: "Carabus nemoralis", details: "A common ground beetle found in forests."},
+        {name: "Carabus violaceus", details: "Known for its striking metallic blue color."},
+        {name: "Carabus auratus", details: "Golden ground beetle, often found in gardens."},
+        {name: "Carabus problematicus", details: "Prefers habitats with dense vegetation."},
+        {name: "Carabus glabratus", details: "Smooth ground beetle found in a variety of habitats."},
+        {name: "Carabus cancellatus", details: "Commonly found in sandy soils."},
+        {name: "Carabus arvensis", details: "Field ground beetle, often seen in open fields."},
+        {name: "Carabus scheidleri", details: "A lesser-known species found in forested areas."},
+        {name: "Carabus granulatus", details: "Recognized by its granulated body texture."},
+        {name: "Carabus klugii", details: "A species known for its size and hunting prowess."},
+        {name: "Carabus menetriesi", details: "Prefers moist habitats, often near water."},
+        {name: "Carabus ullrichi", details: "A rare species found in specific locales."},
+        {name: "Carabus purpurascens", details: "A beetle with a purple hue, found in woodlands."},
+        {name: "Carabus procerus", details: "Notable for its long legs and speed."},
+        {name: "Carabus hortensis", details: "Often found in gardens and cultivated lands."},
+        {name: "Carabus oleraceus", details: "Commonly found in agricultural areas."},
+        {name: "Carabus sylvestris", details: "Forest-dwelling ground beetle."},
+        {name: "Carabus cancellatus", details: "Often seen in dry, sandy habitats."},
+        {name: "Carabus granulatus", details: "Known for its rough body texture."},
+        {name: "Carabus gregarious", details: "Often found in groups."},
+        {name: "Carabus monticola", details: "Found in mountainous regions."}
+    ];
+
+    async function getCarabusOfTheDay() {
+        const today = new Date();
+        const index = today.getDate() % carabidae.length; // Change carabus each day
+        const carabus = carabidae[index];
+
+        // Update scientific name
+        document.getElementById('scientificName').innerText = carabus.name;
+
+        // Fetch Wikipedia article
+        await getWikipediaArticle(carabus.name);
+
+        // Fetch image from GBIF
+        await getGBIFImage(carabus.name);
+    }
+
+    async function getWikipediaArticle(scientificName) {
+        try {
+            const response = await fetch(`https://en.wikipedia.org/w/api.php?action=query&prop=extracts&exintro&explaintext&titles=${encodeURIComponent(scientificName)}&format=json&origin=*`);
+            const data = await response.json();
+            const pages = data.query.pages;
+            const page = Object.values(pages)[0];
+
+            if (page.extract) {
+                document.getElementById('carabusDetails').innerText = page.extract;
+            } else {
+                document.getElementById('carabusDetails').innerText = "No article found on Wikipedia.";
+            }
+        } catch (error) {
+            console.error("Error fetching Wikipedia article:", error);
+            document.getElementById('carabusDetails').innerText = "Error loading article.";
+        }
+    }
+
+    async function getGBIFImage(scientificName) {
+        try {
+            const response = await fetch(`https://api.gbif.org/v1/occurrence/search?scientificName=${encodeURIComponent(scientificName)}&mediaType=StillImage`);
+            const data = await response.json();
+
+            if (data.results.length > 0) {
+                const imageUrl = data.results[0].media[0].identifier;
+                document.getElementById('carabusImage').src = imageUrl;
+            } else {
+                document.getElementById('carabusImage').style.display = 'none';
+            }
+        } catch (error) {
+            console.error("Error fetching GBIF data:", error);
+            document.getElementById('carabusImage').style.display = 'none';
+        }
+    }
+
+    // Update carabus of the day when the page loads
+    getCarabusOfTheDay();
+
+    // Optionally, refresh the page at midnight to update the carabus
+    const now = new Date();
+    const millisUntilMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0) - now;
+    setTimeout(() => {
+        location.reload();
+    }, millisUntilMidnight);
+</script>
+
+</body>
+</html>
